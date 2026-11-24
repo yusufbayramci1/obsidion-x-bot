@@ -23,6 +23,8 @@ def main():
     access_token = os.environ["X_ACCESS_TOKEN"].strip()
     access_secret = os.environ["X_ACCESS_SECRET"].strip()
 
+    print(f"Key uzunluklari -> API_KEY:{len(api_key)}, API_SECRET:{len(api_secret)}, ACCESS_TOKEN:{len(access_token)}, ACCESS_SECRET:{len(access_secret)}")
+
     tweets = load_json(TWEETS_FILE, [])
     if not tweets:
         print("Hata: tweets.json bos.")
@@ -52,6 +54,8 @@ def main():
     )
 
     try:
+        me = client.get_me(user_auth=True)
+        print(f"Baglanilan Hesap: @{me.data.username}")
         response = client.create_tweet(text=tweet_text)
         print(f"Tweet basariyla gonderildi! ID: {response.data['id']}")
         posted.add(chosen_idx)
