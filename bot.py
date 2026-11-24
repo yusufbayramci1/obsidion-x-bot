@@ -18,11 +18,10 @@ def save_json(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def main():
-    # X API v2 Kimlik Bilgileri (GitHub Secrets üzerinden okunur)
-    api_key = os.environ["X_API_KEY"]
-    api_secret = os.environ["X_API_SECRET"]
-    access_token = os.environ["X_ACCESS_TOKEN"]
-    access_secret = os.environ["X_ACCESS_SECRET"]
+    api_key = os.environ["X_API_KEY"].strip()
+    api_secret = os.environ["X_API_SECRET"].strip()
+    access_token = os.environ["X_ACCESS_TOKEN"].strip()
+    access_secret = os.environ["X_ACCESS_SECRET"].strip()
 
     tweets = load_json(TWEETS_FILE, [])
     if not tweets:
@@ -31,10 +30,8 @@ def main():
 
     state = load_json(STATE_FILE, {"posted_indices": []})
     posted = set(state.get("posted_indices", []))
-
     available_indices = [i for i in range(len(tweets)) if i not in posted]
 
-    # Tum havuz paylasildiysa donguyu sifirla
     if not available_indices:
         posted = set()
         available_indices = list(range(len(tweets)))
@@ -42,7 +39,6 @@ def main():
     chosen_idx = random.choice(available_indices)
     tweet_text = tweets[chosen_idx]
 
-    # Bot izini gizlemek icin 1-15 dakika arasi rastgele bekleme (Manuel testte atlanir)
     if os.environ.get("SKIP_JITTER") != "true":
         delay = random.randint(60, 900)
         print(f"Organik zamanlama icin {delay} saniye bekleniyor...")
@@ -55,11 +51,16 @@ def main():
         access_token_secret=access_secret
     )
 
-    response = client.create_tweet(text=tweet_text)
-    print(f"Tweet basariyla gonderildi! ID: {response.data['id']}")
-
-    posted.add(chosen_idx)
-    save_json(STATE_FILE, {"posted_indices": sorted(list(posted))})
+    try:
+        response = client.create_tweet(text=tweet_text)
+        print(f"Tweet basariyla gonderildi! ID: {response.data['id']}")
+        posted.add(chosen_idx)
+        save_json(STATE_FILE, {"posted_indices": sorted(list(posted))})
+    except tweepy.TweepyException as e:
+        print("X API Detayli Hata:", e)
+        if hasattr(e, "response") and e.response is not None:
+            print("Sunucu Yaniti:", e.response.text)
+        raise
 
 if __name__ == "__main__":
     main()
